@@ -284,12 +284,12 @@
         console.log(DIOCESES)
         s()
         console.log ('SCAPING DATA ...')
-        console.log('sending requests to dioces(eparhije)...')
+        console.log('sending requests to dioceses(eparhije)...')
         console.log('Gathering html data...')
         await getHTMLDiocesesData()
+        console.log('done!')
         console.log('Current data:')
         console.log(DIOCESES)
-        console.log('done!')
         s()
 
         // step 1 get monastery {id, name, url}
@@ -297,18 +297,18 @@
         console.log('Parsing data from html, populating monasteries: Array[] with {id, name, url}...')
         loopTroughDiocesesAndParseAndFilterData();
 
-        /* fix one object in array before we continue on next step... */
+        /* fix one object in array before we continue on next step */
         DIOCESES[7].monasteries.pop()
         DIOCESES[7].monasteries[20].name = '21. Sv. Romana-Manastirak'
 
         // step 2 - populate monastery { title, descriotion }
         s()
         console.log ('STEP 2')
-        console.log ('SCAPING DATA ...')
-        console.log('Getting monasteries.htmlData, this will take 10-15sec... please wait...')
+        console.log ('SCAPING DATA...')
+        console.log('Getting monasteries.htmlData, this will take ~10-15sec...')
+        console.log('PLEASE WAIT...')
         await loopTroughDiocesesAndParseAndFilterDataTitleDescription()
         estractMonasteryTitleAndDescription()
-
         
         console.log(DIOCESES)
         s()
@@ -333,7 +333,6 @@
        
     } 
     init()
-
 </script>
 </body>
 </html>
