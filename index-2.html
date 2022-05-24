@@ -115,12 +115,12 @@
 
     /* STEP 1 - POPULATING MONASTERIES [] {id, name, url}  FINCTIONS - END */
 
-    /* STEP 2 - POPULATING MONASTERIES [] { title, description }  FINCTIONS  */
+    /* STEP 2 - POPULATING MONASTERIES [] { title, description }  FINCTIONS */
 
     async function loopTroughDiocesesAndParseAndFilterDataTitleDescription() {
         for (let i = 0; i < DIOCESES.length; i++) {
             for (let j = 0; j < DIOCESES[i].monasteries.length; j++) {
-                const ulr = DIOCESES[i].monasteries[j].url;
+                const ulr = DIOCESES[i].monasteries[j].url
                 let response = await sendRequest_Monastery_Details(ulr)
                 DIOCESES[i].monasteries[j].htmlData = response
             }
@@ -130,7 +130,7 @@
     function sendRequest_Monastery_Details(url) {
         return new Promise(resolve => {
             const xhr = new XMLHttpRequest();
-            xhr.open('GET',url, true)
+            xhr.open('GET', url, true)
             xhr.setRequestHeader('Content-Type', 'application/xml')
             xhr.send()
             xhr.onreadystatechange = (e) => {
@@ -208,7 +208,11 @@
                 })
             })
 
-            FINAL_RESULT.push({'id': d.id, 'name': d.name, 'monasteries': tempMonasteriesArr})
+            FINAL_RESULT.push({
+                'id': d.id, 
+                'name': d.name,
+                'monasteries': tempMonasteriesArr
+            })
         })
     }
     /*STEP 4 - FORMAT DATA - END*/
@@ -225,7 +229,7 @@
 
     function s() {
         // separator
-        console.log("-------------------------------------------------")
+        console.log('-------------------------------------------------')
     }
 
     function getCleanMonasteryObject() {
@@ -248,17 +252,10 @@
         return container
     }
 
-    
     function insert(str, index, value) {
         // insert between array, new value function
         return str.substr(0, index) + value + str.substr(index)
     }
-
-    // function strip(html) {
-    //     let tmp = document.implementation.createHTMLDocument('New').body
-    //     tmp.innerHTML = html
-    //     return tmp.textContent || tmp.innerText || ''
-    // }
 
     function printMonosteries() {
         let index = 0;
@@ -315,15 +312,15 @@
         
         console.log(DIOCESES)
         s()
-        console.log("monasteries count:", countMonosteries())
-        // console.log("monasteries results: "); printMonosteries()
+        console.log('monasteries count:', countMonosteries())
+        // console.log('monasteries results: '); printMonosteries()
         s()
         
         // step 3 - populate monastery { cords }
 
         console.log('STEP 3')
         //extractCoordsFromHtmlData()
-        console.log('coords are too fucked up... we will do it manual :)')
+        console.log('coords are too fucked up... we will do it them manually :)')
 
         // step 4 - parse to json and export ...
         formatter();
