@@ -110,12 +110,13 @@
             data = data.replace(' -', '-')
             data = data.replace('\n', ' ').replace(/\s\s+/g, ' ')
         }
+        
         return data
     }
 
-    /* STEP 1 - POPULATING MONASTERIES [] {id, name, url}  FINCTIONS - END */
+    /* STEP 1 - POPULATING MONASTERIES [] {id, name, url}  FUNCTIONS - END */
 
-    /* STEP 2 - POPULATING MONASTERIES [] { title, description }  FINCTIONS */
+    /* STEP 2 - POPULATING MONASTERIES [] { title, description }  FUNCTIONS */
 
     async function loopTroughDiocesesAndParseAndFilterDataTitleDescription() {
         for (let i = 0; i < DIOCESES.length; i++) {
@@ -175,9 +176,9 @@
         return tempTitle.trim().replace(/\s\s+/g, ' ') // remove \n and spaces in title... 
     }
 
-    /* STEP 2 - POPULATING MONASTERIES [] { title, description }  FINCTIONS - END */
+    /* STEP 2 - POPULATING MONASTERIES [] { title, description }  FUNCTIONS - END */
 
-    /* STEP 3 - POPULATING MONASTERIES [] { coords }  FINCTIONS */
+    /* STEP 3 - POPULATING MONASTERIES [] { coords }  FUNCTIONS */
     
     function extractCoordsFromHtmlData() {
         DIOCESES.forEach(d => {
@@ -190,10 +191,9 @@
             })
         })
     }
-    /* STEP 3 - POPULATING MONASTERIES [] { coords }  FINCTIONS - END */
+    /* STEP 3 - POPULATING MONASTERIES [] { coords }  FUNCTIONS - END */
 
     /*STEP 4 - FORMAT DATA*/
-
     function formatter() {
         DIOCESES.forEach(d => {
             tempMonasteriesArr = []
