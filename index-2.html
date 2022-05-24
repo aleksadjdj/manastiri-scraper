@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+<script>
+    // how to run:
+    // disable CORS in Google Chrome
+    // create folder "C:/test/chromedevsession"
+    // create google chrome shortcut and add on end of Target field
+    // --user-data-dir="C:/test/chromedevsession" --disable-web-security
+      
+    const baseURL = "http://www.manastiri.rs"
+
+    let FINAL_RESULT = []
+
+    let DIOCESES = [
+        { 'id': 1,   'name': 'backa'       , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 2,   'name': 'banatska'    , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 3,   'name': 'beogradska'  , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 4,   'name': 'branicevska' , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 5,   'name': 'valjevska'   , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 6,   'name': 'vranjska'    , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 7,   'name': 'zicka'       , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 8,   'name': 'krusevacka'  , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 9,   'name': 'milesevska'  , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 10,  'name': 'niska'       , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 11,  'name': 'raska'       , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 12,  'name': 'sremska'     , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 13,  'name': 'timocka'     , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 14,  'name': 'sabacka'     , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+        { 'id': 15,  'name': 'sumadijska'  , 'monasteries': [], htmlData: '', coordSelector: '', anchorSelector: 'a',  monasteryDetailsSelector: 'th' },
+    ]
+
+    /* SCRAPE DATA FUNCTIONS */
+    async function getHTMLDiocesesData() {
+        for (let i = 0; i < DIOCESES.length; i++) 
+            await sendRequest(DIOCESES[i])
+    }
+
+    function sendRequest(diocese) {
+        return new Promise(resolve => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', baseURL + `/latinica/eparhije/${diocese.name}.html`, true)
+            xhr.setRequestHeader('Content-Type', 'application/xml')
+            xhr.send()
+            xhr.onreadystatechange = (e) => {
+                if (xhr.readyState == 4) {
+                    resolve(diocese.htmlData = xhr.responseText) 
+                }
+            }
+        });
+    }
+    /* SCRAPE DATA FUNCTIONS - END */
+
+    /* STEP 1 - POPULATING MONASTERIES [] {id, name, url}  FINCTIONS */
+
+    function loopTroughDiocesesAndParseAndFilterData() {
+        // get list of monasteries and data { id, name,  url }
+        // start populating 'monasteries': [] array for each item in DIOCESES
+
+        DIOCESES.forEach(d => {
+            let tempContainerEl = createContainerElementFromResponse(d.htmlData)
+            //console.log(tempContainerEl)
+            let monesteryData = qsa(tempContainerEl, d.anchorSelector)
+            let filteredMonesteryData = cleanMonosteryAnchorsUrls(monesteryData, d.name) 
+            
+            let index = 0;
+            filteredMonesteryData.forEach(m => {
+              
+                let monastery = getCleanMonasteryObject()
+                monastery.id = ++index
+                monastery.name = m.name
+                monastery.url = `http://www.manastiri.rs/latinica/eparhije/${m.url}`
+                d.monasteries.push(monastery)
+            })
+        })
+    }
+
+    function cleanMonosteryAnchorsUrls(monasteryData, dioceseDame) {
+        let results = []
+        monasteryData.forEach(m => {
+            if (m.href.indexOf(`${dioceseDame}/`) > 0) {
+                let monasteryName = m.innerText.trim()
+                monasteryName = cleanTitleData(monasteryName)
+                if (monasteryName !== '') {
+                    results.push({
+                        'name': monasteryName,
+                        'url': m.href.toString()
+                            .replace('http://localhost:5500/', '')
+                            .replace('file:///C:/Users/User/Desktop/manastiri-scraper/', '')
+                    })
+                }
+            }
+        })
+        return results
+    }
+
+    function cleanTitleData(data) {
+        if (data) {
+            data = data.trim()
+            let splitIndex = data.indexOf('.') + 1;
+            data = insert(data, splitIndex, ' ')
+            data = data.replace('  ', ' ')
+            data = data.replace('- ', '-')
+            data = data.replace(' -', '-')
+            data = data.replace('\n', ' ').replace(/\s\s+/g, ' ')
+        }
+        return data
+    }
+
+    /* STEP 1 - POPULATING MONASTERIES [] {id, name, url}  FINCTIONS - END */
+
+    /* STEP 2 - POPULATING MONASTERIES [] { title, description }  FINCTIONS  */
+
+    async function loopTroughDiocesesAndParseAndFilterDataTitleDescription() {
+        for (let i = 0; i < DIOCESES.length; i++) {
+            for (let j = 0; j < DIOCESES[i].monasteries.length; j++) {
+                const ulr = DIOCESES[i].monasteries[j].url;
+                let response = await sendRequest_Monastery_Details(ulr)
+                DIOCESES[i].monasteries[j].htmlData = response
+            }
+        }
+    }
+
+    function sendRequest_Monastery_Details(url) {
+        return new Promise(resolve => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET',url, true)
+            xhr.setRequestHeader('Content-Type', 'application/xml')
+            xhr.send()
+            xhr.onreadystatechange = (e) => {
+                if (xhr.readyState == 4) {
+                    resolve(xhr.responseText) 
+                }
+            }
+        });
+    }
+
+    function estractMonasteryTitleAndDescription() {
+        DIOCESES.forEach(d => {
+            d.monasteries.forEach(m => {
+                // console.log(m.htmlData)
+                
+                // extract monastery title 
+                let tempContainer = createContainerElementFromResponse(m.htmlData)
+
+                let tempResult = qsa(tempContainer, d.monasteryDetailsSelector)
+
+                let tempTitle = tempResult[0]
+                
+                if (tempTitle) {
+                    tempTitle = removeSpacesAndNewLineChars(tempTitle.innerText)
+                    m.title = tempTitle
+                }
+
+                // extract monastery description 
+                let tempDescription = tempResult[1]
+                if (tempDescription) {
+                    tempDescription = tempDescription.outerHTML.replace(/<\/?("[^"]*"|'[^']*'|[^>])*(>|$)/g, '')
+                    tempDescription = removeSpacesAndNewLineChars(tempDescription)
+                    tempDescription = tempDescription.replaceAll('\n', '')
+                    tempDescription = tempDescription.replaceAll('&nbsp;', '')
+                    m.description = tempDescription
+                }
+            })
+        })
+    }
+
+    function removeSpacesAndNewLineChars(tempTitle) {
+        return tempTitle.trim().replace(/\s\s+/g, ' ') // remove \n and spaces in title... 
+    }
+
+    /* STEP 2 - POPULATING MONASTERIES [] { title, description }  FINCTIONS - END */
+
+    /* STEP 3 - POPULATING MONASTERIES [] { coords }  FINCTIONS */
+    
+    function extractCoordsFromHtmlData() {
+        DIOCESES.forEach(d => {
+            var tempContainer = createContainerElementFromResponse(d.htmlData)
+            var innerTexts = qsa(tempContainer, 'span')
+            innerTexts.forEach(it => {
+                if (it.innerText.indexOf(`°`) >= 0) {
+                    console.log(it.innerText)
+                }
+            })
+        })
+    }
+    /* STEP 3 - POPULATING MONASTERIES [] { coords }  FINCTIONS - END */
+
+    /*STEP 4 - FORMAT DATA*/
+
+    function formatter() {
+        DIOCESES.forEach(d => {
+            tempMonasteriesArr = []
+            d.monasteries.forEach(m => {
+                tempMonasteriesArr.push({
+                    id: m.id,
+                    name: m.name,
+                    coords:  '',
+                    url: m.url,
+                    title: m.title,
+                    description: m.description,
+                })
+            })
+
+            FINAL_RESULT.push({'id': d.id, 'name': d.name, 'monasteries': tempMonasteriesArr})
+        })
+    }
+    /*STEP 4 - FORMAT DATA - END*/
+
+
+    /* HELPER FUNCTIONS */
+    function qsa(container, selector) {
+        return container.querySelectorAll(selector)
+    }
+
+    function qs(container, selector) {
+        return container.querySelector(selector)
+    }
+
+    function s() {
+        // separator
+        console.log("-------------------------------------------------")
+    }
+
+    function getCleanMonasteryObject() {
+        return monastery = {
+            id:           0,
+            name:        '',
+            gps_coords:  '',
+            url:         '',
+            title:       '',
+            description: '',
+            htmlData:    ''
+        }
+    }
+
+    function createContainerElementFromResponse(responseHTMLText) {
+        // if response is plane text (string), we can't use querySelectors on them
+        // so i converted them to temp container element
+        let container = document.implementation.createHTMLDocument().documentElement
+        container.innerHTML = responseHTMLText
+        return container
+    }
+
+    
+    function insert(str, index, value) {
+        // insert between array, new value function
+        return str.substr(0, index) + value + str.substr(index)
+    }
+
+    // function strip(html) {
+    //     let tmp = document.implementation.createHTMLDocument('New').body
+    //     tmp.innerHTML = html
+    //     return tmp.textContent || tmp.innerText || ''
+    // }
+
+    function printMonosteries() {
+        let index = 0;
+        DIOCESES.forEach(d => {
+            d.monasteries.forEach(m => {
+                console.log(++index, m.description, m.url)
+            })
+        })
+    }
+
+    function countMonosteries() {
+        let count = 0
+        DIOCESES.forEach(d => {
+            count += d.monasteries.length
+        })
+        return count
+    }
+    /* HELPER FUNCTIONS - END */
+    
+    
+    /* MAIN FUNCTION */
+    const init = async () => {
+        console.log('baseURL target:', baseURL)
+        s()
+        console.log('dioces slugs (eparhije):')
+        console.log(DIOCESES)
+        s()
+        console.log ('SCAPING DATA ...')
+        console.log('sending requests to dioces(eparhije)...')
+        console.log('Gathering html data...')
+        await getHTMLDiocesesData()
+        console.log('Current data:')
+        console.log(DIOCESES)
+        console.log('done!')
+        s()
+
+        // step 1 get monastery {id, name, url}
+        console.log('STEP 1')
+        console.log('Parsing data from html, populating monasteries: Array[] with {id, name, url}...')
+        loopTroughDiocesesAndParseAndFilterData();
+
+        /* fix one object in array before we continue on next step... */
+        DIOCESES[7].monasteries.pop()
+        DIOCESES[7].monasteries[20].name = '21. Sv. Romana-Manastirak'
+
+        // step 2 - populate monastery { title, descriotion }
+        s()
+        console.log ('STEP 2')
+        console.log ('SCAPING DATA ...')
+        console.log('Getting monasteries.htmlData, this will take 10-15sec... please wait...')
+        await loopTroughDiocesesAndParseAndFilterDataTitleDescription()
+        estractMonasteryTitleAndDescription()
+
+        
+        console.log(DIOCESES)
+        s()
+        console.log("monasteries count:", countMonosteries())
+        // console.log("monasteries results: "); printMonosteries()
+        s()
+        
+        // step 3 - populate monastery { cords }
+
+        console.log('STEP 3')
+        //extractCoordsFromHtmlData()
+        console.log('coords are too fucked up... we will do it manual :)')
+
+        // step 4 - parse to json and export ...
+        formatter();
+        console.log(FINAL_RESULT)
+        s()
+        console.log(JSON.stringify(FINAL_RESULT))
+        s()
+        s()
+        console.log('---- FINISH! END OF PROGRAM! ----')
+       
+    } 
+    init()
+
+</script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manastiri Scraper Script</title>
+</head>
+<body>
+    <script >
+        // disable CORS in Google Chrome
+        // create google chrome shortcut and add on end
+        // --user-data-dir="C:/Test/ChromeDevSession" --disable-web-security
+      
+        const baseURL = "http://www.manastiri.rs"
+
+        const dioceses = [
+            //  { 'id': 1,  'name': 'backa'       }
+            //  { 'id': 2,  'name': 'banatska'    }
+            //  { 'id': 3,  'name': 'beogradska'  }
+            //  { 'id': 4,  'name': 'branicevska  }
+            //  { 'id': 5,  'name': 'valjevska'   }
+            //  { 'id': 6,  'name': 'vranjska'    }
+            //  { 'id': 7,  'name': 'zicka'       }
+            //  { 'id': 8,  'name': 'krusevacka'  }
+            //  { 'id': 9,  'name': 'milesevska'  }
+            //  { 'id': 10, 'name': 'niska'       }
+            //  { 'id': 11, 'name': 'raska'       }
+            //  { 'id': 12, 'name': 'sremska'     }
+            //  { 'id': 13, 'name': 'timocka'     }
+            //  { 'id': 14, 'name': 'sabacka'     }
+            //  { 'id': 15, 'name': 'sumadijska'  }
+        ]
+        
+        function sendRequest(diocese) {
+            return new Promise(resolve => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', baseURL + `/latinica/eparhije/${diocese}.html`, true)
+                xhr.setRequestHeader('Content-Type', 'application/xml')
+                xhr.send()
+                xhr.onreadystatechange = (e) => {
+                    if (xhr.readyState == 4) {
+                        resolve({'name': diocese, 'body': xhr.responseText}) 
+                    }
+                }
+            });
+        }
+        
+        function sendRequest_MonosteryDetails(monasteryUrl) {
+            return new Promise(resolve => {
+                const xhr = new XMLHttpRequest()
+                xhr.open('GET', baseURL +`/latinica/eparhije/${monasteryUrl}`, true)
+                xhr.setRequestHeader('Content-Type', 'application/xml')
+                xhr.send()
+                xhr.onreadystatechange = (e) => {
+                    if (xhr.readyState == 4) {
+                        resolve({'body': xhr.responseText}) 
+                    }
+                }
+            });
+        }
+        
+        function createElementFromResponse(responseText) {
+            var container = document.implementation.createHTMLDocument().documentElement
+            container.innerHTML = responseText
+            return container
+        }
+
+        function qsa(container, selector) {
+            return container.querySelectorAll(selector)
+        }
+
+        function qs(container, selector) {
+            return container.querySelector(selector)
+        }
+
+        function getInnerHTMLfromArr(data) {
+            let results = []
+            data.forEach(d => results.push(d.textContent))
+            return results
+        }
+
+        function cleanEmptyMonasteries(monasteryData) {
+            monasteryData = monasteryData.filter(d => (d.monasteryName !== ''));
+            return monasteryData;
+        }
+
+  
+        function filterMonosteryUrls(monasteryData, name) {
+            let results = []
+            monasteryData.forEach(m => {
+                if (m.href.indexOf(`${name}/`) >= 0) {
+                    let name = m.innerText.trim()
+                    name = cleanTitleData(name)
+                    results.push({
+                        monasteryUrl: m.href.toString()
+                        .replace('http://localhost:5500/', '')
+                        .replace('file:///C:/Users/User/Desktop/manastiri-scraper/', ''), 
+                        monasteryName: name
+                    })
+                }
+            })
+            return results
+        }
+
+        function insert(str, index, value) {
+            return str.substr(0, index) + value + str.substr(index);
+        }
+
+        function cleanCoordsData(coords) {
+            if (coords) {
+                coords = coords.replace(/\s/g, '') // remove all \n and empty spaces
+                coords = coords.replace(',', '.') // remove all \n and empty spaces
+                let splitIndex = coords.indexOf('N'); // inserta space before N `45°49'8.00" N20°28'4.00"E`
+                coords = insert(coords, splitIndex, ' ')
+            }
+            return coords
+        }
+
+        function cleanTitleData(data) {
+            if (data) {
+                data = data.trim()
+                let splitIndex = data.indexOf('.') + 1;
+                data = insert(data, splitIndex, ' ')
+                data = data.replace('  ', ' ')
+                data = data.replace('\n', ' ').replace(/\s\s+/g, ' ')
+            }
+
+            return data
+        }
+
+        async function init() {
+            let SCAPE_RESULTS = [];
+            let id = 1;
+
+            let promises = [];
+            dioceses.forEach(d => {
+                promises.push(sendRequest(d))
+            })
+
+            await Promise.allSettled(promises)
+                .then(results => { 
+                    // console.log(results.length)
+                    results.forEach( result => { 
+             
+                    const { name, body } = result.value
+
+                    let container = createElementFromResponse(body)
+                    let monesteryDataUrls = qsa(container, 'a')
+                    let filteredMonesteryDataUrls = filterMonosteryUrls(monesteryDataUrls, name) 
+                    let monesteryDataCoords = qsa(container, 
+                        `.style6 .style17,
+                         .style6 .style18,
+                         .style18, 
+                         .style20,
+                         .style17 .style12
+                       `
+                    )
+                    let monesteryDataCoordsInnerHtml = getInnerHTMLfromArr(monesteryDataCoords, name)
+                    let mergedCoordsAndUrls = []
+                    filteredMonesteryDataUrls = cleanEmptyMonasteries(filteredMonesteryDataUrls)
+                    console.log(filteredMonesteryDataUrls)
+
+                    for (let i = 0; i < filteredMonesteryDataUrls.length; i++) {
+
+                        monesteryDataCoordsInnerHtml[i] = cleanCoordsData(monesteryDataCoordsInnerHtml[i])
+
+                        mergedCoordsAndUrls.push({
+                            ...filteredMonesteryDataUrls[i], 
+                            'coords': monesteryDataCoordsInnerHtml[i],
+                            'baseURL': baseURL,
+                            'id': id++
+                        })
+                    }
+                    //console.log(mergedCoordsAndUrls) 
+                    SCAPE_RESULTS.push(mergedCoordsAndUrls)
+            })})
+            // await for results to fill
+            //console.log("---------------SCAPE_RESULTS------------------")
+            //console.log("SCAPE_RESULTS", SCAPE_RESULTS)
+
+            promises = [];
+    
+            // let MONASTERY_DETAIL_RESULTS = [];
+            // SCAPE_RESULTS.forEach(monasteries => {
+            //     monasteries.forEach(monastery => {
+                   
+            //         promises.push( 
+            //             sendRequest_MonosteryDetails(monastery.monasteryUrl)
+            //             .then(response => {
+            //                 //console.log(monastery)
+            //                 //console.log(response.body)
+            //                 let tempContainer = createElementFromResponse(response.body)
+            //                 let monesteryTitle = qs(tempContainer, '.style2')
+            //                 let monesteryDescription = qs(tempContainer, '.style3')
+            //                 monesteryTitle = monesteryTitle.innerHTML.replace(/<[^>]*>?/gm, '').trim() // remove html from text
+            //                 monesteryDescription = monesteryDescription.innerHTML.replace(/<[^>]*>?/gm, '').trim() // remove html from text
+            //                 //  console.log("Title:", monesteryTitle)
+            //                 //   console.log("Description:", monesteryDescription)
+            //                 MONASTERY_DETAIL_RESULTS.push({'name': monastery.monasteryName, 'title': monesteryTitle, 'description': monesteryDescription})
+            //             })
+            //         )
+            //     }) 
+            // })
+            
+            // await Promise.allSettled(promises)
+
+            // TODO NEED TO CONCAT RESULTS 
+            // console.log(SCAPE_RESULTS)
+         //    console.log(MONASTERY_DETAIL_RESULTS)
+           
+            for (let i = 0 ; i < SCAPE_RESULTS.length; i++) {
+                for (let j = 0 ; j < SCAPE_RESULTS[i].length; j++) {
+                    console.log(SCAPE_RESULTS[i][j].id ,SCAPE_RESULTS[i][j].monasteryName, SCAPE_RESULTS[i][j].coords )
+                }
+            }
+
+            
+         
+            console.log('FINISHED!')
+        }
+        init()
+
+    </script>
+</body>
+</html>
