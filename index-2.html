@@ -44,7 +44,7 @@
 
     function sendRequest(diocese) {
         return new Promise(resolve => {
-            const xhr = new XMLHttpRequest();
+            const xhr = new XMLHttpRequest()
             xhr.open('GET', baseURL + `/latinica/eparhije/${diocese.name}.html`, true)
             xhr.setRequestHeader('Content-Type', 'application/xml')
             xhr.send()
@@ -130,7 +130,7 @@
 
     function sendRequest_Monastery_Details(url) {
         return new Promise(resolve => {
-            const xhr = new XMLHttpRequest();
+            const xhr = new XMLHttpRequest()
             xhr.open('GET', url, true)
             xhr.setRequestHeader('Content-Type', 'application/xml')
             xhr.send()
