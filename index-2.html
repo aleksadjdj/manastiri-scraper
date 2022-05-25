@@ -164,7 +164,7 @@
                 if (tempDescription) {
                     tempDescription = tempDescription.outerHTML.replace(/<\/?("[^"]*"|'[^']*'|[^>])*(>|$)/g, '')
                     tempDescription = removeSpacesAndNewLineChars(tempDescription)
-                    tempDescription = tempDescription.replaceAll('\n', '')
+                    //tempDescription = tempDescription.replaceAll('\n', '')
                     tempDescription = tempDescription.replaceAll('&nbsp;', '')
                     m.description = tempDescription
                 }
@@ -173,7 +173,7 @@
     }
 
     function removeSpacesAndNewLineChars(tempTitle) {
-        return tempTitle.trim().replace(/\s\s+/g, ' ') // remove \n and spaces in title... 
+        return tempTitle.trim().replaceAll(/\s\s+/g, ' ') // remove \n and spaces in title... 
     }
 
     /* STEP 2 - POPULATING MONASTERIES [] { title, description }  FUNCTIONS - END */
